@@ -620,11 +620,11 @@ function renderAdminPanel() {
 
       BULAN_LIST.forEach(bln => {
         const st = String(siswa[bln] || 'Belum Bayar').trim().toLowerCase();
-        let badge = 'text-slate-500';
-        let icon = '•';
+        let badge = 'text-rose-500';
+        let icon = '✕';
 
         if (st === 'nonaktif') {
-          badge = 'text-slate-600';
+          badge = 'text-slate-700';
           icon = '-';
         } else {
           totalAktif++;
@@ -637,7 +637,7 @@ function renderAdminPanel() {
             icon = '⌛';
           } else if (st === 'gagal') {
             badge = 'text-rose-400 font-bold';
-            icon = '✕';
+            icon = '!';
           }
         }
 
