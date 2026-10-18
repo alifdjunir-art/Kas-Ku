@@ -301,6 +301,7 @@ function tutupModalFoto() {
 function openModalTambahInfo() { document.getElementById('modalTambahInfo').classList.remove('hidden'); }
 function closeModalTambahInfo() { document.getElementById('modalTambahInfo').classList.add('hidden'); }
 
+// ==================== SIMPAN PENGUMUMAN ====================
 async function handleSimpanInfo(e) {
   e.preventDefault();
   showToast('Mengunggah pengumuman...', 'info');
@@ -316,9 +317,10 @@ async function handleSimpanInfo(e) {
     });
   }
 
+  const generatedId = String(Date.now());
   const payload = {
     action: "tambah",
-    id: Date.now(),
+    id: generatedId,
     judul: document.getElementById('infoJudul').value.trim(),
     kategori: document.getElementById('infoKategori').value,
     tanggal: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
@@ -328,8 +330,9 @@ async function handleSimpanInfo(e) {
   };
 
   try {
-    await fetch(SPREADSHEET_API_URL, {
+    const res = await fetch(SPREADSHEET_API_URL, {
       method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(payload)
     });
 
@@ -338,35 +341,47 @@ async function handleSimpanInfo(e) {
     document.getElementById('infoIsi').value = '';
     if (fileInput) fileInput.value = '';
 
-    showToast('Pengumuman berhasil disebarkan ke semua!', 'success');
-    await sinkronDataDariSPS(false);
-  } catch (err) {
-    console.error(err);
-    // Fallback simpan lokal jika POST terkendala CORS
+    // Langsung masukkan ke db lokal admin agar langsung muncul di layar
     dbPengumuman.unshift(payload);
     localStorage.setItem('kasku_pengumuman', JSON.stringify(dbPengumuman));
-    closeModalTambahInfo();
     renderPengumuman();
-    showToast('Pengumuman disimpan di memori.', 'info');
+
+    showToast('Pengumuman berhasil disebarkan!', 'success');
+
+    // Sinkronkan ulang data latar belakang dari Google Sheets
+    await sinkronDataDariSPS(false);
+  } catch (err) {
+    console.error("Gagal simpan ke SPS:", err);
+    showToast('Gagal terhubung ke Spreadsheet.', 'error');
   }
 }
 
-async function hapusInfo(id) {
-  if (confirm('Yakin ingin menghapus pengumuman ini?')) {
-    showToast('Menghapus pengumuman...', 'info');
-    try {
-      await fetch(SPREADSHEET_API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: "hapus", id: id })
-      });
-      showToast('Pengumuman berhasil dihapus!', 'info');
-      await sinkronDataDariSPS(false);
-    } catch (err) {
-      dbPengumuman = dbPengumuman.filter(p => p.id !== id);
-      localStorage.setItem('kasku_pengumuman', JSON.stringify(dbPengumuman));
-      renderPengumuman();
-      showToast('Pengumuman dihapus dari memori.', 'info');
-    }
+// ==================== HAPUS PENGUMUMAN DARI WEB (TANPA BUKA SPS) ====================
+async function hapusInfo(idTarget) {
+  if (!confirm('Yakin ingin menghapus pengumuman ini untuk seluruh kelas?')) return;
+
+  showToast('Menghapus pengumuman...', 'info');
+
+  try {
+    // 1. Langsung hapus dari layar & local storage admin seketika
+    dbPengumuman = dbPengumuman.filter(p => String(p.id).trim() !== String(idTarget).trim());
+    localStorage.setItem('kasku_pengumuman', JSON.stringify(dbPengumuman));
+    renderPengumuman();
+
+    // 2. Kirim sinyal hapus ke Google Spreadsheet
+    await fetch(SPREADSHEET_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: "hapus", id: String(idTarget) })
+    });
+
+    showToast('Pengumuman berhasil dihapus!', 'info');
+
+    // Sinkronkan ulang
+    await sinkronDataDariSPS(false);
+  } catch (err) {
+    console.error("Gagal menghapus dari server:", err);
+    showToast('Gagal menghapus di spreadsheet.', 'error');
   }
 }
 
