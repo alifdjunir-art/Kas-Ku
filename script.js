@@ -95,7 +95,13 @@ async function sinkronDataDariSPS(showNotif = false) {
     if (currentUser) {
       const currentNimStr = String(currentUser.nim || '').replace(/\D/g, '');
       const updatedUser = dbKasSiswa.find(u => String(u.nim || '').replace(/\D/g, '') === currentNimStr);
-      if (updatedUser) {
+if (updatedUser) {
+        // Jangan timpa bulan yang statusnya lokalnya lagi 'Menunggu' kalau di SPS belum sempat sync
+        BULAN_LIST.forEach(b => {
+          if (currentUser[b] === 'Menunggu' && updatedUser[b] === 'Belum Bayar') {
+            updatedUser[b] = 'Menunggu';
+          }
+        });
         currentUser = { ...currentUser, ...updatedUser };
         currentUser.isAdmin = LIST_NIM_ADMIN.includes(currentNimStr);
         localStorage.setItem('kasku_active_session', JSON.stringify(currentUser));
@@ -468,15 +474,19 @@ function previewBukti(event) {
 }
 
 // ==================== KIRIM KONFIRMASI KAS (LIVE KE SPREADSHEET) ====================
+// ==================== KONFIRMASI BAYAR KAS (TERKUNCI & TIDAK MENTAL) ====================
 async function handleKirimKas(e) {
   e.preventDefault();
-  const bulan = document.getElementById('selectBulanKas').value;
+  
+  const selectBulan = document.getElementById('selectBulanKas');
+  const bulan = selectBulan ? selectBulan.value.trim() : '';
+
   if (!bulan || bulan.includes('telah lunas')) {
-    showToast('Tidak ada tagihan yang dipilih.', 'error');
+    showToast('Pilih periode bulan yang valid!', 'error');
     return;
   }
 
-  showToast('Mengirim konfirmasi...', 'info');
+  showToast('Mengirim bukti pembayaran...', 'info');
 
   const metode = document.getElementById('selectMetodeKas').value;
   const catatan = document.getElementById('inputCatatanKas').value.trim() || 'Pembayaran via web';
@@ -493,35 +503,49 @@ async function handleKirimKas(e) {
     fotoBukti: tempUploadedImageBase64 || ""
   };
 
-  dbVerifikasi.push(transaksiBaru);
+  // 1. Kunci status "Menunggu" di database lokal
   currentUser[bulan] = "Menunggu";
-
-  const userIdx = dbKasSiswa.findIndex(u => String(u.nim).trim() === String(currentUser.nim).trim());
+  const userIdx = dbKasSiswa.findIndex(u => String(u.nim).replace(/\D/g, '') === String(currentUser.nim).replace(/\D/g, ''));
   if (userIdx !== -1) {
     dbKasSiswa[userIdx][bulan] = "Menunggu";
   }
 
-  localStorage.setItem('kasku_verifikasi', JSON.stringify(dbVerifikasi));
-  localStorage.setItem('kasku_kas_siswa', JSON.stringify(dbKasSiswa));
+  dbVerifikasi.push(transaksiBaru);
 
+  // Simpan ke storage lokal
+  localStorage.setItem('kasku_active_session', JSON.stringify(currentUser));
+  localStorage.setItem('kasku_kas_siswa', JSON.stringify(dbKasSiswa));
+  localStorage.setItem('kasku_verifikasi', JSON.stringify(dbVerifikasi));
+
+  // Update tampilan layar seketika jadi jam pasir (Menunggu)
   renderKasSaya();
   if (currentUser.isAdmin) renderAdminPanel();
 
+  // Reset form upload bukti
   tempUploadedImageBase64 = null;
   document.getElementById('inputCatatanKas').value = '';
   document.getElementById('fileBuktiKas').value = '';
   document.getElementById('previewBuktiWrap').classList.add('hidden');
   document.getElementById('placeholderBuktiWrap').classList.remove('hidden');
 
-  // KIRIM STATUS "MENUNGGU" LANGSUNG KE GOOGLE SPREADSHEET
-  await kirimKeAppsScript({
-    action: "update_status_kas",
-    nim: currentUser.nim,
-    bulan: bulan,
-    status: "Menunggu"
-  });
-
-  showToast(`Bukti ${bulan} terkirim & berstatus Menunggu!`, 'success');
+  // 2. KIRIM KE SPREADSHEET DAN TUNGGU (AWAIT) SAMPAI TULISAN DI SPREADSHEET BERUBAH
+  try {
+    await fetch(SPREADSHEET_API_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: "update_status_kas",
+        nim: String(currentUser.nim).replace(/\D/g, ''),
+        bulan: bulan,
+        status: "Menunggu"
+      })
+    });
+    showToast(`Bukti ${bulan} terkirim! Status sekarang: Menunggu verifikasi.`, 'success');
+  } catch (err) {
+    console.error("Gagal sinkron status ke Apps Script:", err);
+    showToast('Tersimpan di web, namun gagal terhubung ke server Google Sheets.', 'error');
+  }
 }
 
 // ==================== 3. TRANSPARANSI KAS KELAS ====================
