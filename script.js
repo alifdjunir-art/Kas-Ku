@@ -1,7 +1,7 @@
 /* script.js - Sinkronisasi Google Apps Script Live */
 
 // URL RESMI APPS SCRIPT
-const SPREADSHEET_API_URL = "https://script.google.com/macros/s/AKfycbzi4eg2DdpmP0Z_qDvQTyXLn4G4oH_OAZ6ohDUITgVt9LncP8dSd_PX0q44QEizPJ07/exec"; 
+const SPREADSHEET_API_URL = "https://script.google.com/macros/s/AKfycbxT2Cg6NIm1Snr1CaHm2Fx-Epl0s_Zoe0po9GXn_EhMemAisUB4aMblG16XuRgtBeYK/exec"; 
 
 // DAFTAR NIM ADMIN / BENDAHARA
 const LIST_NIM_ADMIN = [
@@ -34,6 +34,22 @@ let dbVerifikasi = JSON.parse(localStorage.getItem('kasku_verifikasi')) || [];
 
 let currentUser = null;
 let tempUploadedImageBase64 = null;
+
+// ==================== HELPER POST KE APPS SCRIPT ====================
+async function kirimKeAppsScript(payload) {
+  try {
+    await fetch(SPREADSHEET_API_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    return true;
+  } catch (err) {
+    console.error("Gagal kirim ke Apps Script:", err);
+    return false;
+  }
+}
 
 // ==================== FETCH GOOGLE APPS SCRIPT ====================
 async function sinkronDataDariSPS(showNotif = false) {
@@ -251,7 +267,7 @@ function renderPengumuman() {
           <div class="flex items-center gap-2">
             <span class="text-[10px] text-slate-400">${p.tanggal || ''}</span>
             ${currentUser && currentUser.isAdmin ? `
-              <button onclick="hapusInfo(${p.id || idx})" title="Hapus Pengumuman Ini" class="text-rose-400 hover:text-rose-300 transition cursor-pointer p-1">
+              <button onclick="hapusInfo('${p.id || idx}')" title="Hapus Pengumuman Ini" class="text-rose-400 hover:text-rose-300 transition cursor-pointer p-1">
                 <i data-lucide="trash" class="w-3.5 h-3.5"></i>
               </button>
             ` : ''}
@@ -329,29 +345,19 @@ async function handleSimpanInfo(e) {
     foto: fotoBase64
   };
 
-  try {
-    await fetch(SPREADSHEET_API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload)
-    });
+  closeModalTambahInfo();
+  document.getElementById('infoJudul').value = '';
+  document.getElementById('infoIsi').value = '';
+  if (fileInput) fileInput.value = '';
 
-    closeModalTambahInfo();
-    document.getElementById('infoJudul').value = '';
-    document.getElementById('infoIsi').value = '';
-    if (fileInput) fileInput.value = '';
+  // Langsung muncul di admin
+  dbPengumuman.unshift(payload);
+  localStorage.setItem('kasku_pengumuman', JSON.stringify(dbPengumuman));
+  renderPengumuman();
 
-    // Langsung muncul di admin
-    dbPengumuman.unshift(payload);
-    localStorage.setItem('kasku_pengumuman', JSON.stringify(dbPengumuman));
-    renderPengumuman();
-
-    showToast('Pengumuman berhasil disebarkan!', 'success');
-    await sinkronDataDariSPS(false);
-  } catch (err) {
-    console.error("Gagal simpan ke SPS:", err);
-    showToast('Gagal terhubung ke Spreadsheet.', 'error');
-  }
+  // Kirim ke Spreadsheet
+  await kirimKeAppsScript(payload);
+  showToast('Pengumuman berhasil disebarkan!', 'success');
 }
 
 // ==================== HAPUS PENGUMUMAN DARI WEB ====================
@@ -360,23 +366,12 @@ async function hapusInfo(idTarget) {
 
   showToast('Menghapus pengumuman...', 'info');
 
-  try {
-    dbPengumuman = dbPengumuman.filter(p => String(p.id).trim() !== String(idTarget).trim());
-    localStorage.setItem('kasku_pengumuman', JSON.stringify(dbPengumuman));
-    renderPengumuman();
+  dbPengumuman = dbPengumuman.filter(p => String(p.id).trim() !== String(idTarget).trim());
+  localStorage.setItem('kasku_pengumuman', JSON.stringify(dbPengumuman));
+  renderPengumuman();
 
-    await fetch(SPREADSHEET_API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: "hapus", id: String(idTarget) })
-    });
-
-    showToast('Pengumuman berhasil dihapus!', 'info');
-    await sinkronDataDariSPS(false);
-  } catch (err) {
-    console.error("Gagal menghapus dari server:", err);
-    showToast('Gagal menghapus di spreadsheet.', 'error');
-  }
+  await kirimKeAppsScript({ action: "hapus", id: String(idTarget) });
+  showToast('Pengumuman berhasil dihapus!', 'info');
 }
 
 // ==================== 2. KAS SAYA & BAYAR KAS ====================
@@ -502,7 +497,9 @@ async function handleKirimKas(e) {
   currentUser[bulan] = "Menunggu";
 
   const userIdx = dbKasSiswa.findIndex(u => String(u.nim).trim() === String(currentUser.nim).trim());
-  if (userIdx !== -1) dbKasSiswa[userIdx][bulan] = "Menunggu";
+  if (userIdx !== -1) {
+    dbKasSiswa[userIdx][bulan] = "Menunggu";
+  }
 
   localStorage.setItem('kasku_verifikasi', JSON.stringify(dbVerifikasi));
   localStorage.setItem('kasku_kas_siswa', JSON.stringify(dbKasSiswa));
@@ -517,21 +514,14 @@ async function handleKirimKas(e) {
   document.getElementById('placeholderBuktiWrap').classList.remove('hidden');
 
   // KIRIM STATUS "MENUNGGU" LANGSUNG KE GOOGLE SPREADSHEET
-  try {
-    await fetch(SPREADSHEET_API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({
-        action: "update_status_kas",
-        nim: currentUser.nim,
-        bulan: bulan,
-        status: "Menunggu"
-      })
-    });
-    showToast(`Bukti ${bulan} terkirim & berstatus Menunggu!`, 'success');
-  } catch (err) {
-    console.error("Gagal simpan status ke SPS:", err);
-  }
+  await kirimKeAppsScript({
+    action: "update_status_kas",
+    nim: currentUser.nim,
+    bulan: bulan,
+    status: "Menunggu"
+  });
+
+  showToast(`Bukti ${bulan} terkirim & berstatus Menunggu!`, 'success');
 }
 
 // ==================== 3. TRANSPARANSI KAS KELAS ====================
@@ -651,7 +641,7 @@ function renderAdminPanel() {
             badge = 'text-amber-400 font-bold';
             icon = '⌛';
           } else if (st === 'gagal') {
-            badge = 'text-rose-500 font-black text-sm';
+            badge = 'text-rose-500 font-bold text-sm';
             icon = '!';
           } else {
             badge = 'text-rose-500 font-bold';
@@ -722,21 +712,14 @@ async function approveKas(id) {
   renderRincianKasKelas();
   renderAdminPanel();
 
-  try {
-    await fetch(SPREADSHEET_API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({
-        action: "update_status_kas",
-        nim: item.nim,
-        bulan: item.bulan,
-        status: "Lunas"
-      })
-    });
-    showToast(`Pembayaran ${item.nama} resmi LUNAS!`, 'success');
-  } catch (err) {
-    console.error(err);
-  }
+  await kirimKeAppsScript({
+    action: "update_status_kas",
+    nim: item.nim,
+    bulan: item.bulan,
+    status: "Lunas"
+  });
+
+  showToast(`Pembayaran ${item.nama} resmi LUNAS!`, 'success');
 }
 
 // ==================== TOLAK KAS (UPDATE KE SPREADSHEET) ====================
@@ -758,21 +741,14 @@ async function rejectKas(id) {
   renderKasSaya();
   renderAdminPanel();
 
-  try {
-    await fetch(SPREADSHEET_API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({
-        action: "update_status_kas",
-        nim: item.nim,
-        bulan: item.bulan,
-        status: "Gagal"
-      })
-    });
-    showToast(`Pembayaran ${item.nama} ditolak (Gagal).`, 'info');
-  } catch (err) {
-    console.error(err);
-  }
+  await kirimKeAppsScript({
+    action: "update_status_kas",
+    nim: item.nim,
+    bulan: item.bulan,
+    status: "Gagal"
+  });
+
+  showToast(`Pembayaran ${item.nama} ditolak (Gagal).`, 'info');
 }
 
 // ==================== UTILITAS ====================
