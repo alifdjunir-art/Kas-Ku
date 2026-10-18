@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kas-Ku • Kelas B - Boledd Enjoyy</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Font Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen antialiased flex flex-col justify-between">
+
+  <!-- Toast Notifikasi Global -->
+  <div id="toast" class="fixed top-5 right-5 z-50 transform transition-all duration-300 translate-y-[-150%] opacity-0 bg-slate-950/90 backdrop-blur-md text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 border border-teal-500/30">
+    <i id="toastIcon" data-lucide="check-circle" class="w-5 h-5 text-emerald-400"></i>
+    <span id="toastMsg" class="text-sm font-medium">Notifikasi</span>
+  </div>
+
+  <!-- ==================== 1. TAMPILAN LOGIN ==================== -->
+  <section id="viewLogin" class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-[#071a24] via-[#092837] to-[#04121a]">
+    <div class="w-full max-w-md bg-[#0c2333]/90 backdrop-blur-xl rounded-3xl shadow-2xl p-7 sm:p-8 border border-teal-500/30">
+      
+      <!-- Logo dari Gambar Sendiri -->
+      <div class="text-center mb-6">
+        <div class="inline-block p-1 rounded-2xl bg-gradient-to-br from-emerald-400 via-teal-400 to-cyan-500 shadow-lg shadow-teal-500/20 mb-3">
+          <img src="LOGO.jpg" alt="Logo Kas-Ku" class="w-20 h-20 object-contain rounded-xl bg-slate-950">
+        </div>
+        <h1 class="text-2xl font-black bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent tracking-tight">
+          Kas-Ku
+        </h1>
+        <p class="text-xs text-teal-200/80 mt-0.5 font-semibold tracking-wider uppercase">By: Rr</p>
+      </div>
+
+      <!-- Form Login -->
+      <form onsubmit="handleLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-teal-200 uppercase tracking-wider mb-1">NIM Mahasiswa</label>
+          <div class="relative">
+            <i data-lucide="hash" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-teal-400/60"></i>
+            <input id="loginNim" type="text" placeholder="Masukkan NIM" required
+              class="w-full pl-10 pr-4 py-2.5 bg-[#071924] border border-teal-500/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-400">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-teal-200 uppercase tracking-wider mb-1">Kata Sandi (pw)</label>
+          <div class="relative">
+            <i data-lucide="lock" class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-teal-400/60"></i>
+            <input id="loginPassword" type="password" placeholder="******" required
+              class="w-full pl-10 pr-10 py-2.5 bg-[#071924] border border-teal-500/30 rounded-xl text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-400">
+            <button type="button" onclick="togglePasswordVisibility('loginPassword')" class="absolute right-3.5 top-1/2 -translate-y-1/2 text-teal-400/60 hover:text-teal-300">
+              <i data-lucide="eye" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="w-full py-3 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 hover:from-emerald-400 hover:to-cyan-500 text-white font-black rounded-xl text-sm shadow-lg shadow-teal-500/30 transition flex items-center justify-center gap-2">
+          <span>Masuk ke Akun</span>
+          <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </button>
+      </form>
+    </div>
+  </section>
+
+  <!-- ==================== 2. TAMPILAN DASHBOARD ==================== -->
+  <div id="viewDashboard" class="hidden min-h-screen flex flex-col bg-[#071a24]">
+    <!-- Navbar -->
+    <header class="bg-[#0a2434]/95 backdrop-blur-md border-b border-teal-500/20 sticky top-0 z-40">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <img src="LOGO.jpg" alt="Logo" class="w-10 h-10 object-contain rounded-xl p-0.5 bg-gradient-to-br from-emerald-400 to-cyan-500 shadow-md">
+          <div>
+            <h1 class="text-base font-black bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent leading-tight">
+              Kas-Ku: Pencatat Keuangan Kelas B
+            </h1>
+            <span class="text-[11px] text-teal-300/80 font-medium">By: Rr</span>
+          </div>
+        </div>
+
+        <!-- Menu Tab Navigasi Desktop -->
+        <nav class="hidden md:flex items-center gap-1 bg-[#061822] p-1 rounded-xl border border-teal-500/20">
+          <button onclick="switchTab('beranda')" id="tabBtn-beranda" class="tab-btn px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-cyan-600 text-white shadow-xs">
+            <i data-lucide="home" class="w-4 h-4"></i> Beranda & Info
+          </button>
+          <button onclick="switchTab('bayarkas')" id="tabBtn-bayarkas" class="tab-btn px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 text-teal-200/70 hover:text-white">
+            <i data-lucide="badge-dollar-sign" class="w-4 h-4"></i> Bayar & Kas Saya
+          </button>
+          <button onclick="switchTab('rekap')" id="tabBtn-rekap" class="tab-btn px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 text-teal-200/70 hover:text-white">
+            <i data-lucide="pie-chart" class="w-4 h-4"></i> Transparansi Kas
+          </button>
+          <!-- KHUSUS ADMIN -->
+          <button onclick="switchTab('admin')" id="tabBtn-admin" class="hidden tab-btn px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 text-amber-300 bg-amber-500/20 border border-amber-500/40">
+            <i data-lucide="shield-check" class="w-4 h-4"></i> Panel Admin
+          </button>
+        </nav>
+
+        <!-- Profil, Tombol Refresh, & Logout -->
+        <div class="flex items-center gap-2 sm:gap-3">
+          <button onclick="sinkronDataDariSPS(true)" title="Sinkron Ulang Spreadsheet" class="px-3 py-2 text-teal-300 bg-teal-950/60 hover:bg-teal-900/60 rounded-xl transition border border-teal-500/30 flex items-center gap-1.5 text-xs font-bold">
+            <i id="btnRefreshIcon" data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+            <span class="hidden sm:inline">Refresh</span>
+          </button>
+
+          <div class="text-right hidden sm:block">
+            <p id="navUserName" class="text-xs font-bold text-slate-100 leading-tight">Nama</p>
+            <span id="navUserRole" class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">Role</span>
+          </div>
+
+          <button onclick="logout()" title="Keluar Akun" class="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-950/40 rounded-xl transition border border-slate-700">
+            <i data-lucide="log-out" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile Tab Bar -->
+      <div class="flex md:hidden border-t border-teal-500/20 overflow-x-auto p-1 bg-[#061822] justify-around text-[11px] font-bold">
+        <button onclick="switchTab('beranda')" class="py-1.5 px-2 text-teal-300">Beranda</button>
+        <button onclick="switchTab('bayarkas')" class="py-1.5 px-2 text-slate-400">Bayar Kas</button>
+        <button onclick="switchTab('rekap')" class="py-1.5 px-2 text-slate-400">Transparansi</button>
+        <button onclick="switchTab('admin')" id="tabBtnMobile-admin" class="hidden py-1.5 px-2 text-amber-400">Admin</button>
+        <button onclick="sinkronDataDariSPS(true)" class="py-1.5 px-2 text-cyan-400 flex items-center gap-1">
+          <i data-lucide="refresh-cw" class="w-3 h-3"></i> Sync
+        </button>
+      </div>
+    </header>
+
+    <!-- Konten Tab Utama -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-8">
+      
+      <!-- ==================== TAB 1: BERANDA & INFORMASI KELAS ==================== -->
+      <section id="tab-beranda" class="space-y-6">
+        <!-- Hero Banner Hijau Biru -->
+        <div class="bg-gradient-to-r from-emerald-900 via-teal-900 to-cyan-950 rounded-3xl p-6 sm:p-8 text-white shadow-xl border border-teal-500/30 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div>
+            <span class="inline-block px-3 py-1 bg-teal-500/20 backdrop-blur-md border border-teal-400/30 rounded-full text-xs font-semibold text-teal-200 mb-2">
+              Semester 3 • Pendidikan Matematika Kelas B 2026
+            </span>
+            <h2 class="text-2xl sm:text-3xl font-black">Halloww, <span id="heroNama">Mahasiswa</span>! 👋</h2>
+            <p class="text-xs sm:text-sm text-teal-100/80 mt-1 max-w-xl">
+              Portal resmi kas kelas B. Pantau kas dan info seputar kelas dengan transparan!
+              <br> Kalau ada saran untuk meningkatkan website ini, boleh banget yaa menghubungi xxxxxxxxxxx.
+            </p>
+          </div>
+          <div class="bg-black/30 backdrop-blur-md p-4 rounded-2xl border border-teal-500/30 min-w-[210px]">
+            <span class="text-[11px] text-teal-200 font-medium">Sisa Kas Kelas Saat Ini</span>
+            <h3 id="heroTotalKasSaldo" class="text-2xl font-black bg-gradient-to-r from-emerald-300 to-cyan-300 bg-clip-text text-transparent mt-0.5">Rp0</h3>
+            <span class="text-[11px] text-teal-300/80">Iuran: Rp5.000 / bulan</span>
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-base font-extrabold text-slate-100 flex items-center gap-2">
+                <i data-lucide="megaphone" class="w-5 h-5 text-teal-400"></i> Pengumuman & Informasi Terkini
+              </h3>
+              <p class="text-xs text-slate-400">Info kelas, tugas, dan agenda kegiatan bersama</p>
+            </div>
+            <button id="btnAdminAddInfo" onclick="openModalTambahInfo()" class="hidden px-3.5 py-2 bg-gradient-to-r from-emerald-500 to-cyan-600 hover:opacity-90 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-md">
+              <i data-lucide="plus-circle" class="w-4 h-4"></i> Buat Info Baru
+            </button>
+          </div>
+
+          <div id="containerPengumuman" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <!-- Dinamis via JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 2: BAYAR KAS & STATUS KAS SAYA ==================== -->
+      <section id="tab-bayarkas" class="hidden space-y-8">
+        <div class="bg-[#0c2333] rounded-3xl p-6 sm:p-8 border border-teal-500/20 shadow-xs">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-teal-500/20">
+            <div>
+              <span class="text-xs font-bold text-teal-400 uppercase tracking-wider">Status Pembayaran Pribadi</span>
+              <h2 class="text-2xl font-black text-slate-100">Catatan Pembayaran 12 Bulan</h2>
+              <p class="text-xs text-slate-400 mt-1">Nama: <strong id="kasAkunNama" class="text-teal-200">-</strong> (<span id="kasAkunNim">-</span>)</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="px-4 py-2 bg-teal-950/60 border border-teal-500/40 rounded-xl text-center">
+                <span class="text-[10px] font-bold text-teal-300 uppercase block">Status Lunas</span>
+                <span id="statUserLunasBadge" class="text-base font-black text-emerald-400">0 Bulan</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6">
+            <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3">Status Iuran Anda (ALL TIME):</h4>
+            <div id="gridBulanKas" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              <!-- Render otomatis via JS -->
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div class="lg:col-span-7 bg-[#0c2333] rounded-3xl p-6 sm:p-8 border border-teal-500/20 shadow-xs space-y-4">
+            <h3 class="text-base font-bold text-slate-100 flex items-center gap-2">
+              <i data-lucide="send" class="w-5 h-5 text-teal-400"></i> Formulir Bayar Kas dari Web
+            </h3>
+            <p class="text-xs text-slate-400">Pilih tagihan bulan kas, transfer sesuai nominal, lalu kirim screenshot struk bukti.</p>
+
+            <form onsubmit="handleKirimKas(event)" class="space-y-4">
+              <div>
+                <label class="block text-xs font-bold text-teal-200 uppercase mb-1">Pilih Bulan Pembayaran</label>
+                <select id="selectBulanKas" required class="w-full px-4 py-2.5 bg-[#071924] border border-teal-500/30 rounded-xl text-xs text-slate-100 focus:ring-2 focus:ring-teal-400 outline-none">
+                  <!-- Diisi otomatis oleh JS -->
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-teal-200 uppercase mb-1">Metode Bayar</label>
+                <select id="selectMetodeKas" class="w-full px-4 py-2.5 bg-[#071924] border border-teal-500/30 rounded-xl text-xs text-slate-100 focus:ring-2 focus:ring-teal-400 outline-none">
+                  <option value="QRIS">QRIS All Payment</option>
+                  <option value="Transfer Bank BCA">Transfer Bank BCA</option>
+                  <option value="DANA / GoPay">e-Wallet (DANA / GoPay)</option>
+                  <option value="Tunai">Tunai Langsung ke Bendahara</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-teal-200 uppercase mb-1">Foto Bukti Transfer (Screenshot)</label>
+                <div class="border-2 border-dashed border-teal-500/30 hover:border-teal-400 rounded-2xl p-4 text-center cursor-pointer bg-[#071924] transition" onclick="document.getElementById('fileBuktiKas').click()">
+                  <input id="fileBuktiKas" type="file" accept="image/*" class="hidden" onchange="previewBukti(event)">
+                  <div id="previewBuktiWrap" class="hidden flex flex-col items-center">
+                    <img id="imgBuktiPreview" src="" alt="Bukti" class="max-h-36 rounded-lg mb-1 object-contain">
+                    <span class="text-xs text-teal-300 font-bold">Foto bukti terpilih (klik untuk mengganti)</span>
+                  </div>
+                  <div id="placeholderBuktiWrap">
+                    <i data-lucide="image-plus" class="w-7 h-7 mx-auto text-teal-400/60 mb-1"></i>
+                    <p class="text-xs font-semibold text-slate-300">Klik untuk upload foto struk m-Banking / Transfer</p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-teal-200 uppercase mb-1">Catatan Tambahan (Opsional)</label>
+                <input id="inputCatatanKas" type="text" placeholder="Contoh: Transfer atas nama rekening Kakak" class="w-full px-4 py-2.5 bg-[#071924] border border-teal-500/30 rounded-xl text-xs text-slate-100 focus:ring-2 focus:ring-teal-400 outline-none">
+              </div>
+
+              <button type="submit" class="w-full py-3 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 hover:opacity-90 text-white font-bold rounded-xl text-xs shadow-lg shadow-teal-500/20 transition flex items-center justify-center gap-1.5">
+                <i data-lucide="check-circle" class="w-4 h-4"></i> Konfirmasi Pembayaran Saya
+              </button>
+            </form>
+          </div>
+
+          <!-- Tujuan Rekening -->
+          <div class="lg:col-span-5 bg-gradient-to-br from-[#061924] to-[#040f17] text-white rounded-3xl p-6 border border-teal-500/30 space-y-4">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-teal-400">Rekening Resmi Kas-Ku Kelas B</span>
+            <div class="bg-white p-3 rounded-2xl flex flex-col items-center justify-center text-slate-900 shadow-inner">
+              <i data-lucide="qr-code" class="w-28 h-28 text-slate-900"></i>
+              <span class="text-[10px] font-black uppercase tracking-wider mt-1 text-slate-800">QRIS KAS KELAS</span>
+            </div>
+            <div class="space-y-2 text-xs">
+              <div class="p-3 bg-[#0c2333] rounded-xl border border-teal-500/20 flex justify-between items-center">
+                <div>
+                  <span class="text-[10px] text-teal-300 block font-bold">BANK BCA (Bendahara Alif)</span>
+                  <span class="font-mono font-bold text-slate-100">8735-0912-33</span>
+                </div>
+                <button onclick="salin('8735091233')" class="px-2.5 py-1 bg-teal-900/60 hover:bg-teal-800/80 text-teal-200 rounded-lg text-[11px] border border-teal-500/30">Salin</button>
+              </div>
+              <div class="p-3 bg-[#0c2333] rounded-xl border border-teal-500/20 flex justify-between items-center">
+                <div>
+                  <span class="text-[10px] text-teal-300 block font-bold">DANA / GOPAY</span>
+                  <span class="font-mono font-bold text-slate-100">0812-9876-5432</span>
+                </div>
+                <button onclick="salin('081298765432')" class="px-2.5 py-1 bg-teal-900/60 hover:bg-teal-800/80 text-teal-200 rounded-lg text-[11px] border border-teal-500/30">Salin</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 3: TRANSPARANSI KAS KELAS ==================== -->
+      <section id="tab-rekap" class="hidden space-y-6">
+        <div>
+          <h2 class="text-2xl font-black text-slate-100 tracking-tight">Transparansi Keuangan Kas</h2>
+          <p class="text-xs text-slate-400">Laporan terbuka arus kas masuk dan pengeluaran kelas</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+          <div class="bg-[#0c2333] p-6 rounded-3xl border border-teal-500/20 shadow-xs flex items-center gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold border border-emerald-500/30">
+              <i data-lucide="trending-up" class="w-6 h-6"></i>
+            </div>
+            <div>
+              <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">Total Pemasukan</span>
+              <h3 id="statTotalPemasukan" class="text-xl font-black text-emerald-400">Rp0</h3>
+            </div>
+          </div>
+
+          <div class="bg-[#0c2333] p-6 rounded-3xl border border-teal-500/20 shadow-xs flex items-center gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold border border-rose-500/30">
+              <i data-lucide="trending-down" class="w-6 h-6"></i>
+            </div>
+            <div>
+              <span class="text-xs text-slate-400 font-bold uppercase tracking-wider">Total Pengeluaran</span>
+              <h3 id="statTotalPengeluaran" class="text-xl font-black text-rose-400">Rp0</h3>
+            </div>
+          </div>
+
+          <div class="bg-[#0c2333] p-6 rounded-3xl border border-cyan-500/30 shadow-xs flex items-center gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-cyan-500 text-white flex items-center justify-center font-bold shadow-md shadow-cyan-500/20">
+              <i data-lucide="wallet" class="w-6 h-6"></i>
+            </div>
+            <div>
+              <span class="text-xs text-cyan-300 font-bold uppercase tracking-wider">Sisa Saldo Kas</span>
+              <h3 id="statSisaSaldo" class="text-xl font-black text-cyan-300">Rp0</h3>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-[#0c2333] rounded-3xl border border-teal-500/20 shadow-xs overflow-hidden">
+          <div class="p-5 border-b border-teal-500/20 flex items-center justify-between">
+            <h3 class="text-sm font-bold text-slate-100 flex items-center gap-2">
+              <i data-lucide="receipt-text" class="w-4 h-4 text-teal-400"></i> Mutasi Kas Terbaru
+            </h3>
+            <span class="text-xs text-slate-400">Tersinkron dari Data Terbaru</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="bg-[#071924] text-teal-200/80 uppercase font-bold border-b border-teal-500/20">
+                  <th class="p-4">Tanggal</th>
+                  <th class="p-4">Jenis</th>
+                  <th class="p-4">Keterangan / Keperluan</th>
+                  <th class="p-4 text-right">Nominal</th>
+                  <th class="p-4">Penanggung Jawab</th>
+                </tr>
+              </thead>
+              <tbody id="tbodyRincianKas" class="divide-y divide-teal-500/10 font-medium text-slate-300">
+                <!-- Diisi via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 4: PANEL ADMIN ==================== -->
+      <section id="tab-admin" class="hidden space-y-6">
+        <div class="bg-amber-500/10 border border-amber-500/30 p-6 rounded-3xl">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+            <div>
+              <h2 class="text-xl font-black text-amber-300 flex items-center gap-2">
+                <i data-lucide="shield-check" class="w-6 h-6 text-amber-400"></i> Verifikasi Pembayaran Mahasiswa
+              </h2>
+              <p class="text-xs text-amber-200/80">Periksa screenshot bukti transfer, lalu setujui menjadi Lunas.</p>
+            </div>
+            <span id="badgePendingTotal" class="px-3 py-1 bg-amber-400/20 border border-amber-400/40 text-amber-300 font-bold rounded-full text-xs">0 Menunggu</span>
+          </div>
+
+          <div id="containerAdminVerifikasi" class="space-y-3">
+            <!-- List verifikasi -->
+          </div>
+        </div>
+
+        <div class="bg-[#0c2333] rounded-3xl border border-teal-500/20 shadow-xs overflow-hidden p-6 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-base font-bold text-slate-100">Rekap Status Kas Seluruh Mahasiswa</h3>
+              <p class="text-xs text-slate-400">Menu khusus Administrator / Bendahara Kelas</p>
+            </div>
+            <a href="https://docs.google.com/spreadsheets/d/1quCMatds2V1z1jDBmAhgCPLrzKCHEg27SEK2mZGP23A/edit" target="_blank" class="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-90 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-sm">
+              <i data-lucide="edit-3" class="w-3.5 h-3.5"></i> Buka Spreadsheet
+            </a>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="bg-[#071924] text-teal-200 uppercase font-bold border-b border-teal-500/20">
+                  <th class="p-3">NIM</th>
+                  <th class="p-3">Nama Mahasiswa</th>
+                  <th class="p-3 text-center">Jan</th>
+                  <th class="p-3 text-center">Feb</th>
+                  <th class="p-3 text-center">Mar</th>
+                  <th class="p-3 text-center">Apr</th>
+                  <th class="p-3 text-center">Mei</th>
+                  <th class="p-3 text-center">Jun</th>
+                  <th class="p-3 text-center">Jul</th>
+                  <th class="p-3 text-center">Agu</th>
+                  <th class="p-3 text-center">Sep</th>
+                  <th class="p-3 text-center">Okt</th>
+                  <th class="p-3 text-center">Nov</th>
+                  <th class="p-3 text-center">Des</th>
+                  <th class="p-3 text-center">Lunas</th>
+                </tr>
+              </thead>
+              <tbody id="tbodyAdminKasSiswa" class="divide-y divide-teal-500/10 font-medium text-slate-300">
+                <!-- Diisi via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <footer class="bg-[#061822] border-t border-teal-500/20 py-4 text-center text-xs text-teal-300/60 font-medium">
+      Kas-Ku • Kelas B - Boledd Enjoyy • Google Spreadsheet Connected
+    </footer>
+  </div>
+
+  <!-- Modal Bukti Transfer -->
+  <div id="modalLihatBukti" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-[#0c2333] w-full max-w-md rounded-3xl shadow-2xl p-5 border border-teal-500/30 space-y-3">
+      <div class="flex items-center justify-between pb-2 border-b border-teal-500/20">
+        <div>
+          <h3 id="modalBuktiNama" class="text-sm font-black text-slate-100">Bukti Transfer</h3>
+          <span id="modalBuktiKet" class="text-[11px] text-teal-300/80">-</span>
+        </div>
+        <button onclick="closeModalLihatBukti()" class="p-1 text-slate-400 hover:text-white rounded-lg">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div class="bg-[#071924] rounded-2xl p-2 flex items-center justify-center min-h-[220px] max-h-[380px] overflow-hidden border border-teal-500/20">
+        <img id="modalBuktiGambar" src="" alt="Bukti Transfer" class="max-h-[360px] w-auto object-contain rounded-xl">
+      </div>
+      <div class="flex justify-end pt-2">
+        <button onclick="closeModalLihatBukti()" class="px-4 py-2 bg-gradient-to-r from-emerald-500 to-cyan-600 text-white rounded-xl text-xs font-bold">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Tambah Info -->
+  <div id="modalTambahInfo" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-[#0c2333] w-full max-w-md rounded-3xl shadow-2xl p-6 border border-teal-500/30 space-y-4">
+      <div class="flex items-center justify-between pb-2 border-b border-teal-500/20">
+        <h3 class="text-sm font-bold text-slate-100">Buat Info Kelas Baru</h3>
+        <button onclick="closeModalTambahInfo()"><i data-lucide="x" class="w-4 h-4 text-slate-400"></i></button>
+      </div>
+      <form onsubmit="handleSimpanInfo(event)" class="space-y-3">
+        <div>
+          <label class="block text-[11px] font-bold text-teal-200 uppercase mb-1">Judul Info</label>
+          <input id="infoJudul" type="text" required placeholder="Judul info..." class="w-full px-3 py-2 bg-[#071924] border border-teal-500/30 rounded-xl text-xs text-slate-100 outline-none">
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-teal-200 uppercase mb-1">Kategori</label>
+          <select id="infoKategori" class="w-full px-3 py-2 bg-[#071924] border border-teal-500/30 rounded-xl text-xs text-slate-100 outline-none">
+            <option>Penting</option><option>Akademik</option><option>Uang Kas</option><option>Santai / Acara</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-teal-200 uppercase mb-1">Isi Pesan</label>
+          <textarea id="infoIsi" rows="3" required placeholder="Tulis rincian pesan..." class="w-full px-3 py-2 bg-[#071924] border border-teal-500/30 rounded-xl text-xs text-slate-100 outline-none"></textarea>
+        </div>
+        <button type="submit" class="w-full py-2.5 bg-gradient-to-r from-emerald-500 to-cyan-600 hover:opacity-90 text-white font-bold rounded-xl text-xs shadow-md">Publikasikan</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
