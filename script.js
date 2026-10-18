@@ -26,83 +26,14 @@ const BULAN_LIST = [
   "Desember 2026"
 ];
 
-// Data Default Pengumuman
-const DEFAULT_PENGUMUMAN = [];
-let dbPengumuman = JSON.parse(localStorage.getItem('kasku_pengumuman')) || [];
-
+// Database State
 let dbKasSiswa = JSON.parse(localStorage.getItem('kasku_kas_siswa')) || [];
 let dbRekapKas = JSON.parse(localStorage.getItem('kasku_rekap_kas')) || [];
-let dbPengumuman = JSON.parse(localStorage.getItem('kasku_pengumuman')) || DEFAULT_PENGUMUMAN;
+let dbPengumuman = JSON.parse(localStorage.getItem('kasku_pengumuman')) || [];
 let dbVerifikasi = JSON.parse(localStorage.getItem('kasku_verifikasi')) || [];
 
 let currentUser = null;
 let tempUploadedImageBase64 = null;
-
-// ==================== SIMPAN PENGUMUMAN KE SPREADSHEET ====================
-async function handleSimpanInfo(e) {
-  e.preventDefault();
-  showToast('Mengunggah pengumuman...', 'info');
-
-  const fileInput = document.getElementById('infoFileFoto');
-  let fotoBase64 = "";
-
-  // Jika ada foto yang di-upload oleh admin
-  if (fileInput && fileInput.files && fileInput.files[0]) {
-    fotoBase64 = await new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (ev) => resolve(ev.target.result);
-      reader.readAsDataURL(fileInput.files[0]);
-    });
-  }
-
-  const payload = {
-    action: "tambah",
-    id: Date.now(),
-    judul: document.getElementById('infoJudul').value.trim(),
-    kategori: document.getElementById('infoKategori').value,
-    tanggal: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
-    penulis: currentUser.panggilan || currentUser.nama,
-    isi: document.getElementById('infoIsi').value.trim(),
-    foto: fotoBase64
-  };
-
-  try {
-    await fetch(SPREADSHEET_API_URL, {
-      method: 'POST',
-      body: JSON.stringify(payload)
-    });
-
-    closeModalTambahInfo();
-    document.getElementById('infoJudul').value = '';
-    document.getElementById('infoIsi').value = '';
-    if (fileInput) fileInput.value = '';
-
-    showToast('Pengumuman berhasil disebarkan ke semua!', 'success');
-    await sinkronDataDariSPS(false);
-  } catch (err) {
-    console.error(err);
-    showToast('Gagal menyimpan ke spreadsheet.', 'error');
-  }
-}
-
-// ==================== HAPUS PENGUMUMAN DARI SPREADSHEET ====================
-async function hapusInfo(id) {
-  if (confirm('Yakin ingin menghapus pengumuman ini untuk seluruh kelas?')) {
-    showToast('Menghapus pengumuman...', 'info');
-    try {
-      await fetch(SPREADSHEET_API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: "hapus", id: id })
-      });
-
-      showToast('Pengumuman berhasil dihapus!', 'info');
-      await sinkronDataDariSPS(false);
-    } catch (err) {
-      console.error(err);
-      showToast('Gagal menghapus pengumuman.', 'error');
-    }
-  }
-}
 
 // ==================== FETCH GOOGLE APPS SCRIPT ====================
 async function sinkronDataDariSPS(showNotif = false) {
@@ -130,6 +61,19 @@ async function sinkronDataDariSPS(showNotif = false) {
     if (Array.isArray(dataRekap) && dataRekap.length > 0) {
       dbRekapKas = dataRekap;
       localStorage.setItem('kasku_rekap_kas', JSON.stringify(dbRekapKas));
+    }
+
+    // 3. Ambil data Pengumuman
+    try {
+      const resInfo = await fetch(`${SPREADSHEET_API_URL}?sheet=Pengumuman&t=${timeStamp}`);
+      const dataInfo = await resInfo.json();
+      if (Array.isArray(dataInfo)) {
+        dbPengumuman = dataInfo;
+        localStorage.setItem('kasku_pengumuman', JSON.stringify(dbPengumuman));
+        renderPengumuman();
+      }
+    } catch (eInfo) {
+      console.warn("Sheet Pengumuman belum ada atau gagal dimuat:", eInfo);
     }
 
     if (currentUser) {
@@ -178,24 +122,30 @@ async function handleLogin(e) {
   const nimInput = document.getElementById('loginNim').value.trim();
   const passInput = document.getElementById('loginPassword').value.trim();
 
-  if (dbKasSiswa.length === 0) {
-    showToast('Sedang memuat data terbaru...', 'info');
+  if (!nimInput || !passInput) {
+    showToast('Harap isi NIM dan Kata Sandi!', 'error');
+    return;
+  }
+
+  if (!dbKasSiswa || dbKasSiswa.length === 0) {
+    showToast('Sedang mengambil data kelas...', 'info');
     await sinkronDataDariSPS(false);
   }
 
-  const user = dbKasSiswa.find(u => String(u.nim).trim() === nimInput);
+  const cleanInputNim = nimInput.replace(/\D/g, '');
+  const user = dbKasSiswa.find(u => String(u.nim || '').replace(/\D/g, '') === cleanInputNim);
 
   if (!user) {
     showToast('NIM tidak ditemukan di data kelas!', 'error');
     return;
   }
 
-  if (String(user.pw).trim() !== passInput) {
+  if (String(user.pw || '').trim() !== passInput) {
     showToast('Kata sandi salah!', 'error');
     return;
   }
 
-  user.isAdmin = LIST_NIM_ADMIN.includes(String(user.nim).trim());
+  user.isAdmin = LIST_NIM_ADMIN.includes(cleanInputNim);
   currentUser = user;
   localStorage.setItem('kasku_active_session', JSON.stringify(currentUser));
   showToast(`Selamat datang, ${currentUser.panggilan || currentUser.nama}!`, 'success');
@@ -215,15 +165,15 @@ function logout() {
 
 // ==================== DASHBOARD UTAMA ====================
 function loadDashboard() {
-  currentUser = dbKasSiswa.find(u => String(u.nim).trim() === String(currentUser.nim).trim()) || currentUser;
-  currentUser.isAdmin = LIST_NIM_ADMIN.includes(String(currentUser.nim).trim());
+  const currentNimStr = String(currentUser.nim || '').replace(/\D/g, '');
+  currentUser = dbKasSiswa.find(u => String(u.nim || '').replace(/\D/g, '') === currentNimStr) || currentUser;
+  currentUser.isAdmin = LIST_NIM_ADMIN.includes(currentNimStr);
 
   document.getElementById('viewLogin').classList.add('hidden');
   document.getElementById('viewDashboard').classList.remove('hidden');
 
   document.getElementById('navUserName').textContent = currentUser.nama;
   document.getElementById('navUserRole').textContent = currentUser.isAdmin ? 'Admin / Ketua' : 'Mahasiswa';
-  // Panggilan dari kolom panggilan Spreadsheet
   document.getElementById('heroNama').textContent = currentUser.panggilan || currentUser.nama;
 
   const btnAdmin = document.getElementById('tabBtn-admin');
@@ -285,17 +235,23 @@ function renderPengumuman() {
   if (!container) return;
   container.innerHTML = '';
 
-  dbPengumuman.forEach(p => {
+  if (!dbPengumuman || dbPengumuman.length === 0) {
+    container.innerHTML = '<p class="text-xs text-slate-400 py-4 text-center col-span-full">Belum ada pengumuman kelas terbaru.</p>';
+    return;
+  }
+
+  dbPengumuman.forEach((p, idx) => {
+    const adaFoto = p.foto && String(p.foto).trim().length > 10;
     const card = document.createElement('div');
     card.className = 'bg-[#0c2333] p-5 rounded-3xl border border-teal-500/20 shadow-xs flex flex-col justify-between';
     card.innerHTML = `
       <div>
         <div class="flex items-center justify-between mb-2">
-          <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">${p.kategori}</span>
+          <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">${p.kategori || 'Info'}</span>
           <div class="flex items-center gap-2">
-            <span class="text-[10px] text-slate-400">${p.tanggal}</span>
+            <span class="text-[10px] text-slate-400">${p.tanggal || ''}</span>
             ${currentUser && currentUser.isAdmin ? `
-              <button onclick="hapusInfo(${p.id})" title="Hapus Pengumuman Ini" class="text-rose-400 hover:text-rose-300 transition">
+              <button onclick="hapusInfo(${p.id || idx})" title="Hapus Pengumuman Ini" class="text-rose-400 hover:text-rose-300 transition">
                 <i data-lucide="trash" class="w-3.5 h-3.5"></i>
               </button>
             ` : ''}
@@ -304,8 +260,15 @@ function renderPengumuman() {
         <h4 class="text-sm font-bold text-slate-100 mb-1">${p.judul}</h4>
         <p class="text-xs text-slate-300 line-clamp-3 leading-relaxed">${p.isi}</p>
       </div>
-      <div class="pt-3 mt-3 border-t border-teal-500/10 text-[11px] text-teal-300/60">
-        Oleh: <strong class="text-teal-200">${p.penulis}</strong>
+
+      <div class="pt-3 mt-3 border-t border-teal-500/10 flex items-center justify-between text-[11px] text-teal-300/60">
+        <div>Oleh: <strong class="text-teal-200">${p.penulis || 'Admin'}</strong></div>
+        ${adaFoto ? `
+          <button type="button" onclick="bukaModalFoto('${p.foto}', '${(p.judul || '').replace(/'/g, "\\'")}')" class="px-2.5 py-1 bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 hover:from-emerald-500/30 hover:to-cyan-500/30 text-cyan-300 rounded-lg text-[10px] font-bold border border-cyan-500/30 flex items-center gap-1 transition cursor-pointer">
+            <i data-lucide="image" class="w-3 h-3 text-cyan-400"></i>
+            <span>Lihat Foto</span>
+          </button>
+        ` : ''}
       </div>
     `;
     container.appendChild(card);
@@ -313,36 +276,101 @@ function renderPengumuman() {
   lucide.createIcons();
 }
 
-function openModalTambahInfo() { document.getElementById('modalTambahInfo').classList.remove('hidden'); }
-function closeModalTambahInfo() { document.getElementById('modalTambahInfo').classList.add('hidden'); }
+function bukaModalFoto(urlFoto, judul) {
+  const modal = document.getElementById('modalDokumentasiPengumuman');
+  const img = document.getElementById('imgDokumentasiPreview');
+  const labelJudul = document.getElementById('modalFotoJudul');
 
-function handleSimpanInfo(e) {
-  e.preventDefault();
-  const infoBaru = {
-    id: Date.now(),
-    judul: document.getElementById('infoJudul').value.trim(),
-    kategori: document.getElementById('infoKategori').value,
-    tanggal: "18 Okt 2026",
-    penulis: currentUser.nama,
-    isi: document.getElementById('infoIsi').value.trim()
-  };
-  dbPengumuman.unshift(infoBaru);
-  localStorage.setItem('kasku_pengumuman', JSON.stringify(dbPengumuman));
-  closeModalTambahInfo();
-  showToast('Pengumuman baru dipublikasikan!', 'success');
-  renderPengumuman();
-}
-
-function hapusInfo(id) {
-  if (confirm('Yakin ingin menghapus pengumuman ini?')) {
-    dbPengumuman = dbPengumuman.filter(p => p.id !== id);
-    localStorage.setItem('kasku_pengumuman', JSON.stringify(dbPengumuman));
-    renderPengumuman();
-    showToast('Pengumuman dihapus.', 'info');
+  if (modal && img) {
+    img.src = urlFoto;
+    if (labelJudul) labelJudul.textContent = judul || 'Dokumentasi';
+    modal.classList.remove('hidden');
+    lucide.createIcons();
   }
 }
 
-// ==================== 2. KAS SAYA & BAYAR KAS (NONAKTIF TANPA TAGIHAN) ====================
+function tutupModalFoto() {
+  const modal = document.getElementById('modalDokumentasiPengumuman');
+  if (modal) {
+    modal.classList.add('hidden');
+    const img = document.getElementById('imgDokumentasiPreview');
+    if (img) img.src = '';
+  }
+}
+
+function openModalTambahInfo() { document.getElementById('modalTambahInfo').classList.remove('hidden'); }
+function closeModalTambahInfo() { document.getElementById('modalTambahInfo').classList.add('hidden'); }
+
+async function handleSimpanInfo(e) {
+  e.preventDefault();
+  showToast('Mengunggah pengumuman...', 'info');
+
+  const fileInput = document.getElementById('infoFileFoto');
+  let fotoBase64 = "";
+
+  if (fileInput && fileInput.files && fileInput.files[0]) {
+    fotoBase64 = await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (ev) => resolve(ev.target.result);
+      reader.readAsDataURL(fileInput.files[0]);
+    });
+  }
+
+  const payload = {
+    action: "tambah",
+    id: Date.now(),
+    judul: document.getElementById('infoJudul').value.trim(),
+    kategori: document.getElementById('infoKategori').value,
+    tanggal: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
+    penulis: currentUser.panggilan || currentUser.nama,
+    isi: document.getElementById('infoIsi').value.trim(),
+    foto: fotoBase64
+  };
+
+  try {
+    await fetch(SPREADSHEET_API_URL, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+
+    closeModalTambahInfo();
+    document.getElementById('infoJudul').value = '';
+    document.getElementById('infoIsi').value = '';
+    if (fileInput) fileInput.value = '';
+
+    showToast('Pengumuman berhasil disebarkan ke semua!', 'success');
+    await sinkronDataDariSPS(false);
+  } catch (err) {
+    console.error(err);
+    // Fallback simpan lokal jika POST terkendala CORS
+    dbPengumuman.unshift(payload);
+    localStorage.setItem('kasku_pengumuman', JSON.stringify(dbPengumuman));
+    closeModalTambahInfo();
+    renderPengumuman();
+    showToast('Pengumuman disimpan di memori.', 'info');
+  }
+}
+
+async function hapusInfo(id) {
+  if (confirm('Yakin ingin menghapus pengumuman ini?')) {
+    showToast('Menghapus pengumuman...', 'info');
+    try {
+      await fetch(SPREADSHEET_API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: "hapus", id: id })
+      });
+      showToast('Pengumuman berhasil dihapus!', 'info');
+      await sinkronDataDariSPS(false);
+    } catch (err) {
+      dbPengumuman = dbPengumuman.filter(p => p.id !== id);
+      localStorage.setItem('kasku_pengumuman', JSON.stringify(dbPengumuman));
+      renderPengumuman();
+      showToast('Pengumuman dihapus dari memori.', 'info');
+    }
+  }
+}
+
+// ==================== 2. KAS SAYA & BAYAR KAS ====================
 function renderKasSaya() {
   document.getElementById('kasAkunNama').textContent = currentUser.nama;
   document.getElementById('kasAkunNim').textContent = currentUser.nim;
@@ -362,7 +390,6 @@ function renderKasSaya() {
     const isNonaktif = status === 'nonaktif';
     if (!isNonaktif) {
       totalBulanAktif++;
-      // Hanya masukkan ke dropdown form jika statusnya belum lunas dan bukan nonaktif
       if (status !== 'lunas') {
         const opt = document.createElement('option');
         opt.value = bln;
@@ -452,11 +479,11 @@ function handleKirimKas(e) {
     nim: currentUser.nim,
     nama: currentUser.nama,
     bulan: bulan,
-    nominal: 20000,
+    nominal: 5000,
     metode: metode,
     catatan: catatan,
     tanggal: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
-    fotoBukti: tempUploadedImageBase64 || "https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=500"
+    fotoBukti: tempUploadedImageBase64 || ""
   };
 
   dbVerifikasi.push(transaksiBaru);
@@ -550,9 +577,11 @@ function renderAdminPanel() {
             <p class="text-xs text-slate-300 mt-1">Metode: <strong class="text-teal-300">${item.metode}</strong> • Catatan: "<em>${item.catatan}</em>"</p>
           </div>
           <div class="flex items-center gap-2 flex-wrap">
-            <button onclick="bukaModalBukti(${item.id})" class="px-3 py-1.5 bg-[#071924] hover:bg-teal-950 text-teal-200 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-teal-500/30">
-              <i data-lucide="image" class="w-3.5 h-3.5 text-cyan-400"></i> Lihat Bukti
-            </button>
+            ${item.fotoBukti ? `
+              <button onclick="bukaModalBukti(${item.id})" class="px-3 py-1.5 bg-[#071924] hover:bg-teal-950 text-teal-200 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-teal-500/30">
+                <i data-lucide="image" class="w-3.5 h-3.5 text-cyan-400"></i> Lihat Bukti
+              </button>
+            ` : ''}
             <button onclick="approveKas(${item.id})" class="px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:opacity-90 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-sm">
               <i data-lucide="check" class="w-3.5 h-3.5"></i> Setujui
             </button>
