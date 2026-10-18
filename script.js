@@ -27,24 +27,8 @@ const BULAN_LIST = [
 ];
 
 // Data Default Pengumuman
-const DEFAULT_PENGUMUMAN = [
-  {
-    id: 1,
-    judul: "Pengingat Iuran Kas Periode Baru",
-    kategori: "Uang Kas",
-    tanggal: "18 Okt 2026",
-    penulis: "Bendahara (Alif)",
-    isi: "Iuran kas periode aktif Rp5.000/bulan. Bulan Januari-Maret 2026 berstatus nonaktif (bebas tagihan)."
-  },
-  {
-    id: 2,
-    judul: "Praktikum Web Libur Minggu Ini",
-    kategori: "Akademik",
-    tanggal: "17 Okt 2026",
-    penulis: "Ketua Kelas",
-    isi: "Dosen sedang dinas ke luar kota, materi diganti dengan penugasan mandiri di e-learning kampus."
-  }
-];
+const DEFAULT_PENGUMUMAN = [];
+let dbPengumuman = JSON.parse(localStorage.getItem('kasku_pengumuman')) || [];
 
 let dbKasSiswa = JSON.parse(localStorage.getItem('kasku_kas_siswa')) || [];
 let dbRekapKas = JSON.parse(localStorage.getItem('kasku_rekap_kas')) || [];
@@ -53,6 +37,72 @@ let dbVerifikasi = JSON.parse(localStorage.getItem('kasku_verifikasi')) || [];
 
 let currentUser = null;
 let tempUploadedImageBase64 = null;
+
+// ==================== SIMPAN PENGUMUMAN KE SPREADSHEET ====================
+async function handleSimpanInfo(e) {
+  e.preventDefault();
+  showToast('Mengunggah pengumuman...', 'info');
+
+  const fileInput = document.getElementById('infoFileFoto');
+  let fotoBase64 = "";
+
+  // Jika ada foto yang di-upload oleh admin
+  if (fileInput && fileInput.files && fileInput.files[0]) {
+    fotoBase64 = await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (ev) => resolve(ev.target.result);
+      reader.readAsDataURL(fileInput.files[0]);
+    });
+  }
+
+  const payload = {
+    action: "tambah",
+    id: Date.now(),
+    judul: document.getElementById('infoJudul').value.trim(),
+    kategori: document.getElementById('infoKategori').value,
+    tanggal: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }),
+    penulis: currentUser.panggilan || currentUser.nama,
+    isi: document.getElementById('infoIsi').value.trim(),
+    foto: fotoBase64
+  };
+
+  try {
+    await fetch(SPREADSHEET_API_URL, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+
+    closeModalTambahInfo();
+    document.getElementById('infoJudul').value = '';
+    document.getElementById('infoIsi').value = '';
+    if (fileInput) fileInput.value = '';
+
+    showToast('Pengumuman berhasil disebarkan ke semua!', 'success');
+    await sinkronDataDariSPS(false);
+  } catch (err) {
+    console.error(err);
+    showToast('Gagal menyimpan ke spreadsheet.', 'error');
+  }
+}
+
+// ==================== HAPUS PENGUMUMAN DARI SPREADSHEET ====================
+async function hapusInfo(id) {
+  if (confirm('Yakin ingin menghapus pengumuman ini untuk seluruh kelas?')) {
+    showToast('Menghapus pengumuman...', 'info');
+    try {
+      await fetch(SPREADSHEET_API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: "hapus", id: id })
+      });
+
+      showToast('Pengumuman berhasil dihapus!', 'info');
+      await sinkronDataDariSPS(false);
+    } catch (err) {
+      console.error(err);
+      showToast('Gagal menghapus pengumuman.', 'error');
+    }
+  }
+}
 
 // ==================== FETCH GOOGLE APPS SCRIPT ====================
 async function sinkronDataDariSPS(showNotif = false) {
