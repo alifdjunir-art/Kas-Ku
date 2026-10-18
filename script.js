@@ -83,10 +83,11 @@ async function sinkronDataDariSPS(showNotif = false) {
     }
 
     if (currentUser) {
-      const updatedUser = dbKasSiswa.find(u => String(u.nim).trim() === String(currentUser.nim).trim());
+      const currentNimStr = String(currentUser.nim || '').replace(/\D/g, '');
+      const updatedUser = dbKasSiswa.find(u => String(u.nim || '').replace(/\D/g, '') === currentNimStr);
       if (updatedUser) {
-        currentUser = updatedUser;
-        currentUser.isAdmin = LIST_NIM_ADMIN.includes(String(currentUser.nim).trim());
+        currentUser = { ...currentUser, ...updatedUser };
+        currentUser.isAdmin = LIST_NIM_ADMIN.includes(currentNimStr);
         localStorage.setItem('kasku_active_session', JSON.stringify(currentUser));
       }
       renderKasSaya();
