@@ -8,13 +8,22 @@ const LIST_NIM_ADMIN = [
   "2506894" // Alif Djuni Rirtono (Ketua Kelas)
 ];
 
-// DAFTAR PERIODE BULAN SESUAI HEADER SPREADSHEET
+// DAFTAR PERIODE BULAN (14 BULAN: 2 BULAN 2025 + 12 BULAN 2026)
 const BULAN_LIST = [
-  "Oktober 2025", "November 2025", 
-  "Januari 2026", "Februari 2026", "Maret 2026", 
-  "April 2026", "Mei 2026", "Juni 2026",
-  "Juli 2026", "Agustus 2026", "September 2026", 
-  "Oktober 2026", "November 2026", "Desember 2026"
+  "Oktober 2025", 
+  "November 2025", 
+  "Januari 2026", 
+  "Februari 2026", 
+  "Maret 2026", 
+  "April 2026", 
+  "Mei 2026", 
+  "Juni 2026",
+  "Juli 2026", 
+  "Agustus 2026", 
+  "September 2026", 
+  "Oktober 2026", 
+  "November 2026", 
+  "Desember 2026"
 ];
 
 // Data Default Pengumuman
