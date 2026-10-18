@@ -17,7 +17,7 @@ const BULAN_LIST = [
   "Maret 2026", 
   "April 2026", 
   "Mei 2026", 
-  "Juni 2026",
+  "Juni 2026", 
   "Juli 2026", 
   "Agustus 2026", 
   "September 2026", 
@@ -251,7 +251,7 @@ function renderPengumuman() {
           <div class="flex items-center gap-2">
             <span class="text-[10px] text-slate-400">${p.tanggal || ''}</span>
             ${currentUser && currentUser.isAdmin ? `
-              <button onclick="hapusInfo(${p.id || idx})" title="Hapus Pengumuman Ini" class="text-rose-400 hover:text-rose-300 transition">
+              <button onclick="hapusInfo(${p.id || idx})" title="Hapus Pengumuman Ini" class="text-rose-400 hover:text-rose-300 transition cursor-pointer p-1">
                 <i data-lucide="trash" class="w-3.5 h-3.5"></i>
               </button>
             ` : ''}
@@ -330,7 +330,7 @@ async function handleSimpanInfo(e) {
   };
 
   try {
-    const res = await fetch(SPREADSHEET_API_URL, {
+    await fetch(SPREADSHEET_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(payload)
@@ -341,14 +341,12 @@ async function handleSimpanInfo(e) {
     document.getElementById('infoIsi').value = '';
     if (fileInput) fileInput.value = '';
 
-    // Langsung masukkan ke db lokal admin agar langsung muncul di layar
+    // Langsung muncul di admin
     dbPengumuman.unshift(payload);
     localStorage.setItem('kasku_pengumuman', JSON.stringify(dbPengumuman));
     renderPengumuman();
 
     showToast('Pengumuman berhasil disebarkan!', 'success');
-
-    // Sinkronkan ulang data latar belakang dari Google Sheets
     await sinkronDataDariSPS(false);
   } catch (err) {
     console.error("Gagal simpan ke SPS:", err);
@@ -356,19 +354,17 @@ async function handleSimpanInfo(e) {
   }
 }
 
-// ==================== HAPUS PENGUMUMAN DARI WEB (TANPA BUKA SPS) ====================
+// ==================== HAPUS PENGUMUMAN DARI WEB ====================
 async function hapusInfo(idTarget) {
   if (!confirm('Yakin ingin menghapus pengumuman ini untuk seluruh kelas?')) return;
 
   showToast('Menghapus pengumuman...', 'info');
 
   try {
-    // 1. Langsung hapus dari layar & local storage admin seketika
     dbPengumuman = dbPengumuman.filter(p => String(p.id).trim() !== String(idTarget).trim());
     localStorage.setItem('kasku_pengumuman', JSON.stringify(dbPengumuman));
     renderPengumuman();
 
-    // 2. Kirim sinyal hapus ke Google Spreadsheet
     await fetch(SPREADSHEET_API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -376,8 +372,6 @@ async function hapusInfo(idTarget) {
     });
 
     showToast('Pengumuman berhasil dihapus!', 'info');
-
-    // Sinkronkan ulang
     await sinkronDataDariSPS(false);
   } catch (err) {
     console.error("Gagal menghapus dari server:", err);
@@ -478,13 +472,16 @@ function previewBukti(event) {
   }
 }
 
-function handleKirimKas(e) {
+// ==================== KIRIM KONFIRMASI KAS (LIVE KE SPREADSHEET) ====================
+async function handleKirimKas(e) {
   e.preventDefault();
   const bulan = document.getElementById('selectBulanKas').value;
   if (!bulan || bulan.includes('telah lunas')) {
     showToast('Tidak ada tagihan yang dipilih.', 'error');
     return;
   }
+
+  showToast('Mengirim konfirmasi...', 'info');
 
   const metode = document.getElementById('selectMetodeKas').value;
   const catatan = document.getElementById('inputCatatanKas').value.trim() || 'Pembayaran via web';
@@ -505,20 +502,36 @@ function handleKirimKas(e) {
   currentUser[bulan] = "Menunggu";
 
   const userIdx = dbKasSiswa.findIndex(u => String(u.nim).trim() === String(currentUser.nim).trim());
-  if (userIdx !== -1) dbKasSiswa[userIdx] = currentUser;
+  if (userIdx !== -1) dbKasSiswa[userIdx][bulan] = "Menunggu";
 
   localStorage.setItem('kasku_verifikasi', JSON.stringify(dbVerifikasi));
   localStorage.setItem('kasku_kas_siswa', JSON.stringify(dbKasSiswa));
 
-  showToast(`Bukti pembayaran ${bulan} berhasil dikirim ke Admin!`, 'success');
+  renderKasSaya();
+  if (currentUser.isAdmin) renderAdminPanel();
+
   tempUploadedImageBase64 = null;
   document.getElementById('inputCatatanKas').value = '';
   document.getElementById('fileBuktiKas').value = '';
   document.getElementById('previewBuktiWrap').classList.add('hidden');
   document.getElementById('placeholderBuktiWrap').classList.remove('hidden');
 
-  renderKasSaya();
-  if (currentUser.isAdmin) renderAdminPanel();
+  // KIRIM STATUS "MENUNGGU" LANGSUNG KE GOOGLE SPREADSHEET
+  try {
+    await fetch(SPREADSHEET_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: "update_status_kas",
+        nim: currentUser.nim,
+        bulan: bulan,
+        status: "Menunggu"
+      })
+    });
+    showToast(`Bukti ${bulan} terkirim & berstatus Menunggu!`, 'success');
+  } catch (err) {
+    console.error("Gagal simpan status ke SPS:", err);
+  }
 }
 
 // ==================== 3. TRANSPARANSI KAS KELAS ====================
@@ -593,14 +606,14 @@ function renderAdminPanel() {
           </div>
           <div class="flex items-center gap-2 flex-wrap">
             ${item.fotoBukti ? `
-              <button onclick="bukaModalBukti(${item.id})" class="px-3 py-1.5 bg-[#071924] hover:bg-teal-950 text-teal-200 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-teal-500/30">
+              <button onclick="bukaModalBukti(${item.id})" class="px-3 py-1.5 bg-[#071924] hover:bg-teal-950 text-teal-200 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-teal-500/30 cursor-pointer">
                 <i data-lucide="image" class="w-3.5 h-3.5 text-cyan-400"></i> Lihat Bukti
               </button>
             ` : ''}
-            <button onclick="approveKas(${item.id})" class="px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:opacity-90 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-sm">
+            <button onclick="approveKas(${item.id})" class="px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:opacity-90 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-sm cursor-pointer">
               <i data-lucide="check" class="w-3.5 h-3.5"></i> Setujui
             </button>
-            <button onclick="rejectKas(${item.id})" class="px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 rounded-xl text-xs font-bold transition border border-rose-500/30">
+            <button onclick="rejectKas(${item.id})" class="px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 rounded-xl text-xs font-bold transition border border-rose-500/30 cursor-pointer">
               Tolak
             </button>
           </div>
@@ -619,12 +632,14 @@ function renderAdminPanel() {
       let kolomBulanHTML = '';
 
       BULAN_LIST.forEach(bln => {
-        const st = String(siswa[bln] || 'Belum Bayar').trim().toLowerCase();
-        let badge = 'text-rose-500';
+        const raw = String(siswa[bln] || 'Belum Bayar').trim();
+        const st = raw.toLowerCase();
+
+        let badge = 'text-rose-500 font-bold';
         let icon = '✕';
 
         if (st === 'nonaktif') {
-          badge = 'text-slate-700';
+          badge = 'text-slate-700 font-normal';
           icon = '-';
         } else {
           totalAktif++;
@@ -636,12 +651,15 @@ function renderAdminPanel() {
             badge = 'text-amber-400 font-bold';
             icon = '⌛';
           } else if (st === 'gagal') {
-            badge = 'text-rose-400 font-bold';
+            badge = 'text-rose-500 font-black text-sm';
             icon = '!';
+          } else {
+            badge = 'text-rose-500 font-bold';
+            icon = '✕';
           }
         }
 
-        kolomBulanHTML += `<td class="p-2.5 text-center ${badge}" title="${bln}: ${siswa[bln]}">${icon}</td>`;
+        kolomBulanHTML += `<td class="p-2.5 text-center ${badge}" title="${bln}: ${raw}">${icon}</td>`;
       });
 
       const tr = document.createElement('tr');
@@ -673,9 +691,12 @@ function closeModalLihatBukti() {
   document.getElementById('modalLihatBukti').classList.add('hidden');
 }
 
-function approveKas(id) {
+// ==================== SETUJUI KAS (UPDATE KE SPREADSHEET) ====================
+async function approveKas(id) {
   const item = dbVerifikasi.find(v => v.id === id);
   if (!item) return;
+
+  showToast('Memverifikasi pembayaran...', 'info');
 
   const targetUser = dbKasSiswa.find(u => String(u.nim).trim() === String(item.nim).trim());
   if (targetUser) {
@@ -686,7 +707,7 @@ function approveKas(id) {
     id: String(Date.now()),
     tanggal: new Date().toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }),
     jenis: "Pemasukan",
-    keterangan: `Iuran Kas ${item.bulan} (Terverifikasi)`,
+    keterangan: `Iuran Kas ${item.bulan} (${item.nama})`,
     nominal: String(item.nominal),
     penanggung_jawab: "Bendahara Alif"
   });
@@ -697,13 +718,33 @@ function approveKas(id) {
   localStorage.setItem('kasku_rekap_kas', JSON.stringify(dbRekapKas));
   localStorage.setItem('kasku_verifikasi', JSON.stringify(dbVerifikasi));
 
-  showToast(`Pembayaran kas ${item.nama} resmi LUNAS!`, 'success');
-  loadDashboard();
+  renderKasSaya();
+  renderRincianKasKelas();
+  renderAdminPanel();
+
+  try {
+    await fetch(SPREADSHEET_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: "update_status_kas",
+        nim: item.nim,
+        bulan: item.bulan,
+        status: "Lunas"
+      })
+    });
+    showToast(`Pembayaran ${item.nama} resmi LUNAS!`, 'success');
+  } catch (err) {
+    console.error(err);
+  }
 }
 
-function rejectKas(id) {
+// ==================== TOLAK KAS (UPDATE KE SPREADSHEET) ====================
+async function rejectKas(id) {
   const item = dbVerifikasi.find(v => v.id === id);
   if (!item) return;
+
+  showToast('Menolak pembayaran...', 'info');
 
   const targetUser = dbKasSiswa.find(u => String(u.nim).trim() === String(item.nim).trim());
   if (targetUser) {
@@ -714,8 +755,24 @@ function rejectKas(id) {
   localStorage.setItem('kasku_kas_siswa', JSON.stringify(dbKasSiswa));
   localStorage.setItem('kasku_verifikasi', JSON.stringify(dbVerifikasi));
 
-  showToast(`Pembayaran kas ${item.nama} ditolak.`, 'info');
-  loadDashboard();
+  renderKasSaya();
+  renderAdminPanel();
+
+  try {
+    await fetch(SPREADSHEET_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action: "update_status_kas",
+        nim: item.nim,
+        bulan: item.bulan,
+        status: "Gagal"
+      })
+    });
+    showToast(`Pembayaran ${item.nama} ditolak (Gagal).`, 'info');
+  } catch (err) {
+    console.error(err);
+  }
 }
 
 // ==================== UTILITAS ====================
