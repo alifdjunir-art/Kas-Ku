@@ -5,7 +5,10 @@ const SPREADSHEET_API_URL = "https://script.google.com/macros/s/AKfycbwS-jYv6v5Y
 
 // DAFTAR NIM ADMIN / BENDAHARA
 const LIST_NIM_ADMIN = [
-  "2506894" // Alif Djuni Rirtono (Ketua Kelas)
+  "2506894", // Alif Djuni Rirtono (Ketua Kelas)
+  "2500838"  // Nayla Sabrina (Bendahara)
+  // Tambah lagi di bawahnya kalau ada bendahara/admin lain:
+  // "NIM_BERIKUTNYA"
 ];
 
 // DAFTAR PERIODE BULAN (14 BULAN: 2 BULAN 2025 + 12 BULAN 2026)
