@@ -1,7 +1,7 @@
 /* script.js - Sinkronisasi Google Apps Script Live */
 
 // URL RESMI APPS SCRIPT
-const SPREADSHEET_API_URL = "https://script.google.com/macros/s/AKfycbwcGXdxyoWbDW8aouBo-Fh8upUhM_FGVuFzjZnjTJYYoLUSVyHq4FKhEf5CU5PT8WC3/exec"; 
+const SPREADSHEET_API_URL = "https://script.google.com/macros/s/AKfycbwS-jYv6v5Y6rSlWKoydTDO54FVChX2gylXJ2GxsIXFj6PGOiPayvyn56bPn0xieq07/exec"; 
 
 // DAFTAR NIM ADMIN / BENDAHARA
 const LIST_NIM_ADMIN = [
@@ -35,14 +35,16 @@ let dbVerifikasi = JSON.parse(localStorage.getItem('kasku_verifikasi')) || [];
 let currentUser = null;
 let tempUploadedImageBase64 = null;
 
-// ==================== HELPER UPDATE STATUS KE SPS (BYPASS CORS & CSP) ====================
-function updateStatusKasKeSPS(nim, bulan, status) {
+// ==================== HELPER UPDATE KE SPREADSHEET (BYPASS CORS) ====================
+async function updateStatusKasKeSPS(nim, bulan, status) {
   const cleanNim = String(nim).replace(/\D/g, '');
   const url = `${SPREADSHEET_API_URL}?action=update_status_kas&nim=${encodeURIComponent(cleanNim)}&bulan=${encodeURIComponent(bulan)}&status=${encodeURIComponent(status)}&t=${Date.now()}`;
   
-  // Menggunakan Image Beacon: metode paling stabil, tidak pernah dicegat browser CSP/CORS
-  const beacon = new Image();
-  beacon.src = url;
+  try {
+    await fetch(url, { method: 'GET', mode: 'no-cors' });
+  } catch (err) {
+    console.warn("Gagal update status via GET:", err);
+  }
 }
 
 // ==================== FETCH GOOGLE APPS SCRIPT ====================
@@ -86,11 +88,11 @@ async function sinkronDataDariSPS(showNotif = false) {
       console.warn("Sheet Pengumuman belum dimuat:", eInfo);
     }
 
+    // Update sesi aktif tanpa menimpa status "Menunggu" yang baru dikirim
     if (currentUser) {
       const currentNimStr = String(currentUser.nim || '').replace(/\D/g, '');
       const updatedUser = dbKasSiswa.find(u => String(u.nim || '').replace(/\D/g, '') === currentNimStr);
       if (updatedUser) {
-        // Jangan timpa status lokal yang sedang "Menunggu" sebelum spreadsheet sempat sync
         BULAN_LIST.forEach(b => {
           if (currentUser[b] === 'Menunggu' && updatedUser[b] === 'Belum Bayar') {
             updatedUser[b] = 'Menunggu';
@@ -368,7 +370,7 @@ async function handleSimpanInfo(e) {
   }
 }
 
-// ==================== HAPUS PENGUMUMAN DARI WEB ====================
+// ==================== HAPUS PENGUMUMAN ====================
 async function hapusInfo(idTarget) {
   if (!confirm('Yakin ingin menghapus pengumuman ini untuk seluruh kelas?')) return;
 
@@ -413,7 +415,7 @@ function renderKasSaya() {
       totalBulanAktif++;
       if (status !== 'lunas') {
         const opt = document.createElement('option');
-        opt.value = bln;
+        opt.value = bln; // Nilai murni nama bulan
         opt.textContent = `${bln} (Rp5.000) - Status: ${rawStatus}`;
         selectBulan.appendChild(opt);
       }
@@ -485,11 +487,17 @@ function previewBukti(event) {
 }
 
 // ==================== KONFIRMASI BAYAR KAS ====================
-function handleKirimKas(e) {
+async function handleKirimKas(e) {
   e.preventDefault();
-  const bulan = document.getElementById('selectBulanKas').value;
-  if (!bulan || bulan.includes('telah lunas')) {
-    showToast('Tidak ada tagihan yang dipilih.', 'error');
+
+  const selectBulanEl = document.getElementById('selectBulanKas');
+  let rawBulan = selectBulanEl ? selectBulanEl.value : '';
+
+  // Filter nama bulan murni
+  let bulanDipilih = BULAN_LIST.find(b => rawBulan.toLowerCase().includes(b.toLowerCase())) || rawBulan.trim();
+
+  if (!bulanDipilih || bulanDipilih.includes('telah lunas')) {
+    showToast('Pilih tagihan bulan yang valid.', 'error');
     return;
   }
 
@@ -502,7 +510,7 @@ function handleKirimKas(e) {
     id: Date.now(),
     nim: currentUser.nim,
     nama: currentUser.nama,
-    bulan: bulan,
+    bulan: bulanDipilih,
     nominal: 5000,
     metode: metode,
     catatan: catatan,
@@ -511,13 +519,13 @@ function handleKirimKas(e) {
   };
 
   // Kunci status lokal
-  dbVerifikasi.push(transaksiBaru);
-  currentUser[bulan] = "Menunggu";
-
+  currentUser[bulanDipilih] = "Menunggu";
   const userIdx = dbKasSiswa.findIndex(u => String(u.nim).trim() === String(currentUser.nim).trim());
   if (userIdx !== -1) {
-    dbKasSiswa[userIdx][bulan] = "Menunggu";
+    dbKasSiswa[userIdx][bulanDipilih] = "Menunggu";
   }
+
+  dbVerifikasi.push(transaksiBaru);
 
   localStorage.setItem('kasku_verifikasi', JSON.stringify(dbVerifikasi));
   localStorage.setItem('kasku_kas_siswa', JSON.stringify(dbKasSiswa));
@@ -532,10 +540,10 @@ function handleKirimKas(e) {
   document.getElementById('previewBuktiWrap').classList.add('hidden');
   document.getElementById('placeholderBuktiWrap').classList.remove('hidden');
 
-  // KIRIM KE GOOGLE SPREADSHEET VIA GET BEACON
-  updateStatusKasKeSPS(currentUser.nim, bulan, "Menunggu");
+  // Kirim live ke Google Spreadsheet
+  await updateStatusKasKeSPS(currentUser.nim, bulanDipilih, "Menunggu");
 
-  showToast(`Bukti ${bulan} terkirim & status Menunggu!`, 'success');
+  showToast(`Bukti ${bulanDipilih} terkirim & status Menunggu!`, 'success');
 }
 
 // ==================== 3. TRANSPARANSI KAS KELAS ====================
@@ -696,7 +704,7 @@ function closeModalLihatBukti() {
 }
 
 // ==================== SETUJUI KAS (LUNAS) ====================
-function approveKas(id) {
+async function approveKas(id) {
   const item = dbVerifikasi.find(v => v.id === id);
   if (!item) return;
 
@@ -726,14 +734,12 @@ function approveKas(id) {
   renderRincianKasKelas();
   renderAdminPanel();
 
-  // Kirim status Lunas ke Spreadsheet via GET
-  updateStatusKasKeSPS(item.nim, item.bulan, "Lunas");
-
+  await updateStatusKasKeSPS(item.nim, item.bulan, "Lunas");
   showToast(`Pembayaran ${item.nama} resmi LUNAS!`, 'success');
 }
 
 // ==================== TOLAK KAS (GAGAL) ====================
-function rejectKas(id) {
+async function rejectKas(id) {
   const item = dbVerifikasi.find(v => v.id === id);
   if (!item) return;
 
@@ -751,9 +757,7 @@ function rejectKas(id) {
   renderKasSaya();
   renderAdminPanel();
 
-  // Kirim status Gagal ke Spreadsheet via GET
-  updateStatusKasKeSPS(item.nim, item.bulan, "Gagal");
-
+  await updateStatusKasKeSPS(item.nim, item.bulan, "Gagal");
   showToast(`Pembayaran ${item.nama} ditolak (Gagal).`, 'info');
 }
 
