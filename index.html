@@ -243,7 +243,7 @@
 
               <div>
                 <label class="block text-xs font-bold text-teal-200 uppercase mb-1">Catatan Tambahan (Opsional)</label>
-                <input id="inputCatatanKas" type="text" placeholder="Contoh: Transfer atas nama rekening Kakak" class="w-full px-4 py-2.5 bg-[#071924] border border-teal-500/30 rounded-xl text-xs text-slate-100 focus:ring-2 focus:ring-teal-400 outline-none">
+                <input id="inputCatatanKas" type="text" placeholder="Contoh: Transfer untuk pembayaran 3 bulan" class="w-full px-4 py-2.5 bg-[#071924] border border-teal-500/30 rounded-xl text-xs text-slate-100 focus:ring-2 focus:ring-teal-400 outline-none">
               </div>
 
               <button type="submit" class="w-full py-3 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 hover:opacity-90 text-white font-bold rounded-xl text-xs shadow-lg shadow-teal-500/20 transition flex items-center justify-center gap-1.5">
@@ -255,24 +255,37 @@
           <!-- Tujuan Rekening -->
           <div class="lg:col-span-5 bg-gradient-to-br from-[#061924] to-[#040f17] text-white rounded-3xl p-6 border border-teal-500/30 space-y-4">
             <span class="text-[10px] font-bold uppercase tracking-wider text-teal-400">Rekening Resmi Kas-Ku Kelas B</span>
-            <div class="bg-white p-3 rounded-2xl flex flex-col items-center justify-center text-slate-900 shadow-inner">
-              <i data-lucide="qr-code" class="w-28 h-28 text-slate-900"></i>
-              <span class="text-[10px] font-black uppercase tracking-wider mt-1 text-slate-800">QRIS KAS KELAS</span>
+            <div class="flex flex-col items-center justify-center p-5 bg-[#0c2333] rounded-3xl border border-teal-500/20 text-center max-w-sm mx-auto shadow-xs">
+  
+              <!-- Gambar QRIS -->
+              <div class="p-3 bg-white rounded-2xl shadow-inner mb-3">
+                <img src="QRIS.jpg" alt="QRIS Pembayaran Kas-Ku" class="w-48 h-48 object-contain">
+              </div>
+            
+              <p class="text-xs text-slate-300 font-medium mb-3">Scan langsung lewat GoPay, OVO, DANA, BCA, dll.</p>
+            
+              <!-- Tombol Download QRIS -->
+              <a href="QRIS.jpg" download="QRIS-Kas-Kelas.jpg" class="w-full py-2.5 px-4 bg-gradient-to-r from-emerald-500 to-cyan-600 hover:opacity-90 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-xs cursor-pointer">
+                <i data-lucide="download" class="w-4 h-4"></i>
+                <span>Unduh QRIS</span>
+              </a>
+            
             </div>
+            
             <div class="space-y-2 text-xs">
               <div class="p-3 bg-[#0c2333] rounded-xl border border-teal-500/20 flex justify-between items-center">
                 <div>
-                  <span class="text-[10px] text-teal-300 block font-bold">BANK BCA (Bendahara Alif)</span>
-                  <span class="font-mono font-bold text-slate-100">8735-0912-33</span>
+                  <span class="text-[10px] text-teal-300 block font-bold">ShopeePay (Alif Djuni)</span>
+                  <span class="font-mono font-bold text-slate-100">0899-8705-251</span>
                 </div>
-                <button onclick="salin('8735091233')" class="px-2.5 py-1 bg-teal-900/60 hover:bg-teal-800/80 text-teal-200 rounded-lg text-[11px] border border-teal-500/30">Salin</button>
+                <button onclick="salin('08998705251')" class="px-2.5 py-1 bg-teal-900/60 hover:bg-teal-800/80 text-teal-200 rounded-lg text-[11px] border border-teal-500/30">Salin</button>
               </div>
               <div class="p-3 bg-[#0c2333] rounded-xl border border-teal-500/20 flex justify-between items-center">
                 <div>
-                  <span class="text-[10px] text-teal-300 block font-bold">DANA / GOPAY</span>
-                  <span class="font-mono font-bold text-slate-100">0812-9876-5432</span>
+                  <span class="text-[10px] text-teal-300 block font-bold">DANA (Alif Djuni)</span>
+                  <span class="font-mono font-bold text-slate-100">0896-6981-1331</span>
                 </div>
-                <button onclick="salin('081298765432')" class="px-2.5 py-1 bg-teal-900/60 hover:bg-teal-800/80 text-teal-200 rounded-lg text-[11px] border border-teal-500/30">Salin</button>
+                <button onclick="salin('089669811331')" class="px-2.5 py-1 bg-teal-900/60 hover:bg-teal-800/80 text-teal-200 rounded-lg text-[11px] border border-teal-500/30">Salin</button>
               </div>
             </div>
           </div>
