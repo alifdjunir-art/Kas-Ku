@@ -147,7 +147,7 @@
             <h2 class="text-2xl sm:text-3xl font-black">Halloww, <span id="heroNama">Mahasiswa</span>! 👋</h2>
             <p class="text-xs sm:text-sm text-teal-100/80 mt-1 max-w-xl">
               Portal resmi kas kelas B. Pantau kas dan info seputar kelas dengan transparan!
-              <br> Kalau ada saran untuk meningkatkan website ini, boleh banget yaa menghubungi xxxxxxxxxxx.
+              <br> Kalau ada saran untuk meningkatkan website ini, boleh banget yaa hubungi pengurus kelas.
             </p>
           </div>
           <div class="bg-black/30 backdrop-blur-md p-4 rounded-2xl border border-teal-500/30 min-w-[210px]">
@@ -165,12 +165,6 @@
               </h3>
               <p class="text-xs text-slate-400">Info kelas, tugas, dan agenda kegiatan bersama</p>
             </div>
-
-    <!-- Input Upload Foto Dokumentasi (Opsional) -->
-          <div class="mb-4">
-            <label class="block text-xs font-bold text-slate-300 mb-1">Foto Dokumentasi (Opsional)</label>
-            <input type="file" id="infoFileFoto" accept="image/*" class="w-full text-xs text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-teal-500/20 file:text-teal-300 hover:file:bg-teal-500/30 cursor-pointer">
-          </div>
               
             <button id="btnAdminAddInfo" onclick="openModalTambahInfo()" class="hidden px-3.5 py-2 bg-gradient-to-r from-emerald-500 to-cyan-600 hover:opacity-90 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-md">
               <i data-lucide="plus-circle" class="w-4 h-4"></i> Buat Info Baru
@@ -189,7 +183,7 @@
           <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-teal-500/20">
             <div>
               <span class="text-xs font-bold text-teal-400 uppercase tracking-wider">Status Pembayaran Pribadi</span>
-              <h2 class="text-2xl font-black text-slate-100">Catatan Pembayaran 12 Bulan</h2>
+              <h2 class="text-2xl font-black text-slate-100">Catatan Pembayaran</h2>
               <p class="text-xs text-slate-400 mt-1">Nama: <strong id="kasAkunNama" class="text-teal-200">-</strong> (<span id="kasAkunNim">-</span>)</p>
             </div>
             <div class="flex items-center gap-2">
@@ -452,7 +446,7 @@
     </div>
   </div>
 
-  <!-- Modal Tambah Info -->
+  <!-- Modal Tambah Info (Dengan Input Foto Dokumentasi di dalamnya) -->
   <div id="modalTambahInfo" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
     <div class="bg-[#0c2333] w-full max-w-md rounded-3xl shadow-2xl p-6 border border-teal-500/30 space-y-4">
       <div class="flex items-center justify-between pb-2 border-b border-teal-500/20">
@@ -474,8 +468,36 @@
           <label class="block text-[11px] font-bold text-teal-200 uppercase mb-1">Isi Pesan</label>
           <textarea id="infoIsi" rows="3" required placeholder="Tulis rincian pesan..." class="w-full px-3 py-2 bg-[#071924] border border-teal-500/30 rounded-xl text-xs text-slate-100 outline-none"></textarea>
         </div>
+        <!-- Input Upload Foto ditaruh di sini -->
+        <div>
+          <label class="block text-[11px] font-bold text-teal-200 uppercase mb-1">Foto Dokumentasi (Opsional)</label>
+          <input type="file" id="infoFileFoto" accept="image/*" class="w-full text-xs text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-teal-500/20 file:text-teal-300 hover:file:bg-teal-500/30 cursor-pointer">
+        </div>
         <button type="submit" class="w-full py-2.5 bg-gradient-to-r from-emerald-500 to-cyan-600 hover:opacity-90 text-white font-bold rounded-xl text-xs shadow-md">Publikasikan</button>
       </form>
+    </div>
+  </div>
+
+  <!-- Modal Pop-Up Kartu Foto Dokumentasi Pengumuman -->
+  <div id="modalDokumentasiPengumuman" onclick="if(event.target === this) tutupModalFoto()" class="fixed inset-0 bg-slate-950/75 backdrop-blur-xs z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-[#0c2333] border border-teal-500/30 rounded-3xl p-4 max-w-sm w-full shadow-2xl relative flex flex-col gap-3">
+      <div class="flex items-center justify-between px-1">
+        <div class="flex items-center gap-2">
+          <i data-lucide="image" class="w-4 h-4 text-cyan-400"></i>
+          <h4 id="modalFotoJudul" class="text-xs font-bold text-slate-200 truncate max-w-[200px]">Dokumentasi</h4>
+        </div>
+        <button type="button" onclick="tutupModalFoto()" class="w-6 h-6 flex items-center justify-center rounded-lg bg-teal-500/10 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition cursor-pointer">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="w-full bg-[#071924] rounded-2xl border border-teal-500/20 p-2 flex items-center justify-center overflow-hidden min-h-[160px]">
+        <img id="imgDokumentasiPreview" src="" alt="Dokumentasi" class="w-full max-h-72 rounded-xl object-contain">
+      </div>
+
+      <button type="button" onclick="tutupModalFoto()" class="w-full py-2 bg-teal-500/15 hover:bg-teal-500/25 text-teal-300 text-xs font-bold rounded-xl border border-teal-500/20 transition cursor-pointer">
+        Tutup
+      </button>
     </div>
   </div>
 
