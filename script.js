@@ -1,7 +1,7 @@
 /* script.js - Sinkronisasi Google Apps Script Live */
 
 // URL RESMI APPS SCRIPT
-const SPREADSHEET_API_URL = "https://script.google.com/macros/s/AKfycbxT2Cg6NIm1Snr1CaHm2Fx-Epl0s_Zoe0po9GXn_EhMemAisUB4aMblG16XuRgtBeYK/exec"; 
+const SPREADSHEET_API_URL = "https://script.google.com/macros/s/AKfycbxfscBFVJWNd81uNHVln4kbN1ORYuV3jNDOizuyf9e9UM3xegfinMjfZCPUpr9A2iHR/exec"; 
 
 // DAFTAR NIM ADMIN / BENDAHARA
 const LIST_NIM_ADMIN = [
